@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 export default function Home() {
   
   const [siteTree, setSiteTree] = useState(null);
-
+  let idURL='https://carv.ist/api.php?job=get_template&id='
+ 
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -13,18 +14,6 @@ export default function Home() {
           throw new Error('Network response was not ok.');
         }
         const data = await response.json();
-
-        const aliasValues = data.map((item:any) => item.alias);
-        
-        const setLocalStorageData = (key:any, data:any) => {
-          try {
-            localStorage.setItem(key, JSON.stringify(data));
-          } catch (error) {
-            console.error('LocalStorage error: ', error);
-          }
-        };
-        setLocalStorageData('aliasData', aliasValues);
-
         setSiteTree(data);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -34,13 +23,13 @@ export default function Home() {
     fetchData();
   }, []);
 
-  if (siteTree === null) {
-    return <p>Geliyor</p>;
-  }
+  let firstElement:any = siteTree?siteTree[0]:'';
+
 
   return (
     <div>
-      <pre>{JSON.stringify(siteTree, null, 2)}</pre>
+      <h1>Anasayfa gelecek</h1>
+      <p>{idURL}{firstElement.id}</p>
     </div>
   );
 }
