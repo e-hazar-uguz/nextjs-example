@@ -1,42 +1,47 @@
-'use client'
-import React, { FC, useEffect, useState } from 'react'
+import React from 'react'
 import Custom404 from '../404/page';
-import { useSiteTree } from '../page';
+import { getAllData } from '../page';
+import axios from 'axios';
+
 
 interface PageProps{
   params: {params:string}
 }
 
 const Page: React.FC<PageProps> = ({ params }) => {
-  
-  const siteTree = useSiteTree() || [];
-  console.log(siteTree)
-  if (siteTree.length === 0) {
-    return (
-      <div>
-        <Custom404 />
-      </div>
-    );
-  }
+
+const fetchData = async () => {
+
+  const siteTree = await getAllData();
 
   let originParams :any;
   originParams=params.params;
   if (originParams.length > 1) {
+    console.log('default params :',originParams)
     originParams = originParams.join('/');
-    console.log('en az 2 parametre var ', originParams);
   } else {
-    console.log('tek parametre var ', originParams);
+    originParams=params.params.toString(); 
   }
 
-  const aliasData = siteTree.flatMap((page: any) => {
-    const pageAliases = [page.alias, ...(page.sub_pages || []).map((subPage: any) => `${page.alias}/${subPage.alias}`)];
-    return pageAliases.map((alias: string) => ({
-      alias,
-      id: page.id,
-    }));
+  let subPagesData: any[] = [];
+  let aliasValues = siteTree.map((item: any) => ({
+    alias: item.alias,
+    id: item.id,
+  }));
+
+  siteTree.forEach((el: any) => {
+    if (el.sub_pages) {
+      const subPagesAlias = el.alias;
+      subPagesData = el.sub_pages.map((item: any) => ({
+        alias: subPagesAlias + '/' + item.alias,
+        id: item.id,
+      }));
+    }
   });
 
-  const filteredData = aliasData.filter((res: any) => res.alias.includes(originParams));
+  const mergedPageData = [...aliasValues, ...subPagesData];
+
+  let filteredData = mergedPageData.filter((res: any) => res.alias.includes(originParams));
 
   if (filteredData.length === 0) {
     return (
@@ -45,13 +50,29 @@ const Page: React.FC<PageProps> = ({ params }) => {
       </div>
     );
   }
+  
+  let hazar = filteredData.find((item:any) => item.alias == originParams);
+  let templateUrl = `https://carv.ist/api.php?job=get_template&id=${hazar.id}`;
 
-  return (
-    <div>
-      <h1>İstek yapılan parametre: "{params.params}" sistemde var olan</h1>
-    </div>
-  );
+  const fetchTemplateHtml = async () => {
+    try {
+      const response = await axios.get(templateUrl);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching template:', error);
+      return '';
+    }
+  };
+  
+  const templateHtml = await fetchTemplateHtml();
+  console.log(templateHtml)
+   return <div dangerouslySetInnerHTML={{ __html: templateHtml.page }} />;
+   //<div>  <h1>İstek yapılan parametre: "{params.params}" sistemde var olan</h1></div>    
 };
+
+return fetchData();
+};
+
 
 
 export default Page;
